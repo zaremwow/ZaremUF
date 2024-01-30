@@ -1,0 +1,6 @@
+## Title: ZaremUF
+## Interface: 11404
+## Version: 2.4
+## SavedVariables: ZaremUFDB
+Config.lua
+ZaremUF.lua
