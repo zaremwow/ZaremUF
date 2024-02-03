@@ -1,3 +1,7 @@
+--------------------------------------------------------------------------------
+--- Initialize
+--------------------------------------------------------------------------------
+
 local _, ns = ...
 
 local PlayerFrame, TargetFrame, PlayerFrameHealthBar = PlayerFrame, TargetFrame, PlayerFrameHealthBar
@@ -7,9 +11,9 @@ local PlayerFrameBg
 if not ZaremUFDB then
     ZaremUFDB = {
         lock = true,
-        hide = false,
-        darkMode = false,
-        playerDragon = true,
+        hide = true,
+        darkMode = true,
+        playerDragon = false,
         fontOutline = true,
         classPortrait = true,
     }
@@ -25,71 +29,21 @@ end
 
 local RAID_CLASS_COLORS = ns.ClassColors or RAID_CLASS_COLORS
 
-TargetFrameToT:SetScale(ns.config.totScale)
-PlayerFrame:SetScale(ns.config.scale)
-TargetFrame:SetScale(ns.config.scale)
-
+--------------------------------------------------------------------------------
+--- Functions
 --------------------------------------------------------------------------------
 
 local function ClassColor(unit)
     local _, class = UnitClass(unit)
-    if not class then return end
+    if not class then return 1, 1, 1 end
     local color = RAID_CLASS_COLORS[class]
     return color.r, color.g, color.b
-end
-
-local function ReactionHealth(unit)
-    local r, g, b
-    if UnitIsTapDenied(unit) and not UnitPlayerControlled(unit) then
-        r, g, b = 0.6, 0.6, 0.6
-    elseif UnitReaction(unit, "player") == 4 then
-        r, g, b = 0.8, 0.7, 0
-    elseif UnitIsFriend(unit, "player") then
-        r, g, b = 0, 0.8, 0
-    elseif UnitIsEnemy(unit, "player") then
-        r, g, b = 0.9, 0.2, 0
-    else
-        r, g, b = 1, 1, 1
-    end
-    return r, g, b
-end
-
-local function ReactionNameBG(unit)
-    local r, g, b
-    if UnitIsDeadOrGhost(unit) or (UnitIsTapDenied(unit) and not UnitPlayerControlled(unit)) or not UnitIsConnected(unit) then
-        r, g, b = 0.6, 0.6, 0.6
-    elseif UnitReaction(unit, "player") == 4 then
-        r, g, b = 0.8, 0.7, 0
-    elseif UnitIsFriend(unit, "player") then
-        r, g, b = 0, 0.8, 0
-    elseif UnitIsEnemy(unit, "player") then
-        r, g, b = 0.9, 0.2, 0
-    else
-        r, g, b = 1, 1, 1
-    end
-    return r, g, b
 end
 
 local function DifficultyColor(unit)
     local level = UnitLevel(unit)
     local color = GetQuestDifficultyColor(level)
     return color.r, color.g, color.b
-end
-
-local function DarkMode()
-    for _, v in next, {
-        PlayerFrameTexture,
-        TargetFrameTextureFrameTexture,
-        TargetFrameToTTextureFrameTexture,
-        PetFrameTexture,
-    }
-    do
-        if ZaremUFDB.darkMode then
-            v:SetVertexColor(unpack(ns.config.darkRGB))
-        else
-            v:SetVertexColor(1, 1, 1, 1)
-        end
-    end
 end
 
 local function ApplyPosition()
@@ -130,7 +84,6 @@ end
 
 local function ClassPortrait(self)
     if not self.portrait then return end
-    if not ZaremUFDB.classPortrait then return end
 
     if UnitIsPlayer(self.unit) then
         local _, class = UnitClass(self.unit)
@@ -150,7 +103,7 @@ local function TargetNameBG(frame, unit)
     if ns.config.classNameTarget and UnitIsPlayer(unit) then
         frame:SetVertexColor(ClassColor(unit))
     elseif ns.config.reactionNameTarget then
-        frame:SetVertexColor(ReactionNameBG(unit))
+        frame:SetVertexColor(ns.ReactionNameBG(unit))
     else
         frame:SetVertexColor(0, 0, 0, 0.5)
     end
@@ -162,9 +115,19 @@ local function HealthColor(frame, unit)
     if ns.config.classHealth and UnitIsPlayer(unit) then
         frame:SetStatusBarColor(ClassColor(unit))
     elseif ns.config.reactionHealth then
-        frame:SetStatusBarColor(ReactionHealth(unit))
+        frame:SetStatusBarColor(ns.ReactionHealth(unit))
     else
         frame:SetStatusBarColor(ns.config.healthColor[1], ns.config.healthColor[2], ns.config.healthColor[3])
+    end
+end
+
+local function NameplateColor(frame, unit)
+    if not unit then return end
+
+    if ns.config.nameplateClass and UnitIsPlayer(unit) then 
+        frame:SetStatusBarColor(ClassColor(unit))
+    else
+        frame:SetStatusBarColor(ns.ReactionNamePlates(unit))
     end
 end
 
@@ -190,7 +153,7 @@ local function PlayerFrameBG_Colors()
     if ns.config.classNamePlayer then
         PlayerFrameBg:SetVertexColor(ClassColor("player"))
     elseif ns.config.reactionNamePlayer then
-        PlayerFrameBg:SetVertexColor(ReactionNameBG("player"))
+        PlayerFrameBg:SetVertexColor(ns.ReactionNameBG("player"))
     else
         PlayerFrameBg:Hide()
     end
@@ -207,30 +170,6 @@ local function PlayerFrameTextures()
         PlayerFrameTexture:SetTexture(ns.config.dragonTexture)
     else
         PlayerFrameTexture:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame.blp")
-    end
-end
-
-local function FontOutline()
-    for _, v in next, {
-        PlayerName,
-        TargetFrame.name,
-        TargetFrame.deadText,
-        TargetFrame.unconsciousText,
-        TargetFrameToT.name,
-        TargetFrameToT.deadText,
-        TargetFrameToT.unconsciousText,
-        PlayerLevelText,
-        TargetFrame.levelText,
-        PetName,
-    }
-    do
-        if ZaremUFDB.fontOutline then
-            v:SetFont(STANDARD_TEXT_FONT, 11, "OUTLINE")
-            v:SetShadowColor(0, 0, 0, 0.35)
-        else
-            v:SetFont(STANDARD_TEXT_FONT, 10, "")
-            v:SetShadowColor(0, 0, 0, 1)
-        end
     end
 end
 
@@ -257,20 +196,25 @@ local function TargetFrameHook(self)
 end
 
 local function AttributeDriver()
-    if ZaremUFDB.hide then
-        RegisterAttributeDriver(PlayerFrame, "state-visibility", ns.config.playerFrameVis)
-    else
-        RegisterAttributeDriver(PlayerFrame, "state-visibility", "show")
+    for _, v in next, ns.config.driverFrames do
+        if ZaremUFDB.hide then
+            RegisterAttributeDriver(v, "state-visibility", ns.config.driverVis)
+        else
+            RegisterAttributeDriver(v, "state-visibility", "show")
+        end
     end
 end
 
 local function EventHandler(self, event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
+        if ZaremUFDB.classPortrait then 
+            hooksecurefunc("UnitFramePortrait_Update", ClassPortrait)  
+        end
         ApplyPosition()
         AttributeDriver()
-        DarkMode()
+        ns.DarkMode()
         PlayerFrameTextures()
-        FontOutline()
+        ns.FontOutline()
     elseif event == "PET_ATTACK_START" then
         if ns.config.hideAttack then
             PetAttackModeTexture:Hide()
@@ -281,33 +225,39 @@ end
 local function SlashHandler(msg)
     if msg == "hide" then
         ZaremUFDB.hide = not ZaremUFDB.hide
-        print("ZaremUF hidden: " .. tostring(ZaremUFDB.hide))
+        print("|cff00ff00ZaremUF hidden: " .. tostring(ZaremUFDB.hide))
         AttributeDriver()
     elseif msg == "lock" then
         ZaremUFDB.lock = not ZaremUFDB.lock
-        print("ZaremUF locked: " .. tostring(ZaremUFDB.lock))
+        print("|cff00ff00ZaremUF locked: " .. tostring(ZaremUFDB.lock))
         ApplyPosition()
     elseif msg == "dark" then
         ZaremUFDB.darkMode = not ZaremUFDB.darkMode
-        print("ZaremUF dark mode: " .. tostring(ZaremUFDB.darkMode))
-        DarkMode()
+        print("|cff00ff00ZaremUF dark mode: " .. tostring(ZaremUFDB.darkMode))
+        ns.DarkMode()
     elseif msg == "dragon" then
         ZaremUFDB.playerDragon = not ZaremUFDB.playerDragon
-        print("ZaremUF player dragon: " .. tostring(ZaremUFDB.playerDragon))
+        print("|cff00ff00ZaremUF player dragon: " .. tostring(ZaremUFDB.playerDragon))
         PlayerFrameTextures()
     elseif msg == "portrait" then
         ZaremUFDB.classPortrait = not ZaremUFDB.classPortrait
-        print("ZaremUF class portrait: " .. tostring(ZaremUFDB.classPortrait) .. " (ui reload required)")
+        print("|cff00ff00ZaremUF class portrait: " .. tostring(ZaremUFDB.classPortrait) .. " (ui reload required)")
     elseif msg == "outline" then
         ZaremUFDB.fontOutline = not ZaremUFDB.fontOutline
-        print("ZaremUF font outline: " .. tostring(ZaremUFDB.fontOutline))
-        FontOutline()
+        print("|cff00ff00ZaremUF font outline: " .. tostring(ZaremUFDB.fontOutline))
+        ns.FontOutline()
     else
-        print("ZaremUF cmd list: /hide /lock /dark /dragon /portrait /outline")
+        print("|cff00ff00ZaremUF cmd list: /hide /lock /dark /dragon /portrait /outline")
     end
 end
 
 --------------------------------------------------------------------------------
+--- Execute
+--------------------------------------------------------------------------------
+
+TargetFrameToT:SetScale(ns.config.totScale)
+PlayerFrame:SetScale(ns.config.scale)
+TargetFrame:SetScale(ns.config.scale)
 
 for i = 1, 5 do 
     _G["ComboPoint" .. i]:SetAlpha(ns.config.comboAlpha) 
@@ -344,7 +294,15 @@ hooksecurefunc("UnitFrameHealthBar_Update", function(self)
     HealthColor(self, self.unit) 
 end)
 
-hooksecurefunc("UnitFramePortrait_Update", ClassPortrait) 
+if ns.config.nameplate then
+    hooksecurefunc("CompactUnitFrame_UpdateHealthColor", function(self)
+        NameplateColor(self.healthBar, self.unit)
+    end)
+
+    hooksecurefunc("CompactUnitFrame_UpdateHealth", function(self)
+        NameplateColor(self.healthBar, self.unit)
+    end)
+end
 
 local eventHandler = CreateFrame("Frame")
 eventHandler:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -354,3 +312,4 @@ eventHandler:SetScript("OnEvent", EventHandler)
 SLASH_ZAREMUF1 = "/zaremuf"
 SLASH_ZAREMUF2 = "/zuf"
 SlashCmdList.ZAREMUF = SlashHandler 
+

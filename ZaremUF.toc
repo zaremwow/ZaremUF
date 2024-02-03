@@ -1,6 +1,7 @@
 ## Title: ZaremUF
-## Interface: 11404
-## Version: 2.4
+## Interface: 11500
+## Version: 2.5
 ## SavedVariables: ZaremUFDB
+## Notes: Unit Frame Enhancements
 Config.lua
 ZaremUF.lua
