@@ -11,8 +11,8 @@ local PlayerFrameBg
 if not ZaremUFDB then
     ZaremUFDB = {
         lock = true,
-        hide = true,
-        darkMode = true,
+        hide = false,
+        darkMode = false,
         playerDragon = false,
         fontOutline = true,
         classPortrait = true,

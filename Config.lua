@@ -9,14 +9,14 @@ ns.config = {
     totScale = 1,
 
     comboAlpha = 1,
-    darkRGB = { 0.5, 0.5, 0.5 },
+    darkRGB = { 0.4, 0.4, 0.4 },
     healthColor = { 0, 0.8, 0 },
 
     --dragonTexture = "Interface\\TargetingFrame\\UI-TargetingFrame-Elite.blp",
     dragonTexture = "Interface\\TargetingFrame\\UI-TargetingFrame-Rare-Elite.blp",
 
     colorizeNames = true,
-    minStatus = true,
+    minStatus = false,
     difficultyLevel = true,
     blueShaman = false,
 
